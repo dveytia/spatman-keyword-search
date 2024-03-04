@@ -1,0 +1,73 @@
+---
+title: "Boolean search query visualization"
+author: "Devi Veytia"
+date: "2024-03-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Set up
+
+```{r load libraries}
+library(dplyr)
+library(R.utils)
+library(ggplot2)
+```
+
+```{r load in keyword matches}
+load(here::here("data/derived-data/search-query-keywords-matches.RData"))
+```
+
+
+# Simple barplot of frequency of matches for different labels
+
+
+```{r tabulate number of matches for each label}
+
+## For each type of option, tabulate the number of articles 
+
+# Merge two data frames on metadata and keyword matching
+matches_tab <- colSums(matches_all%>% select(-c(analysis_id)), na.rm=T)
+matches_tab <- data.frame(
+  label = names(matches_tab),
+  n_articles = matches_tab
+)
+
+# Calculate as a percent as well
+totalArticles <- sum(matches_tab$n_articles, na.rm=T)
+matches_tab$percent_articles <- matches_tab$n_articles/totalArticles*100
+
+
+# Factor labels levels -- modify as needed
+matches_tab$label_factor <- factor(matches_tab$label,
+                            levels = matches_tab$label,
+                            labels = gsub("_"," ", matches_tab$label))
+
+```
+
+```{r plot stacked bar plot of mCDR method}
+nArticlesBar_ggp <- ggplot(matches_tab)+
+  geom_col(aes(x = label_factor, y = n_articles, fill = label_factor))+
+  geom_text(aes(x = label_factor, y=n_articles, label = formatC(n_articles, big.mark = " ")),
+            size=4, col="black", nudge_y = 0.25)+
+  labs(x="Label", y ="N articles")+
+  theme_bw()+
+  theme(
+    axis.text.x = element_text(size=13, angle = 45, hjust=1),
+    axis.text.y = element_text(size=13),
+    axis.title.x = element_text(size=15),
+    axis.title.y = element_text(size=15),
+    legend.position = "none"
+  )
+
+
+
+ggsave(nArticlesBar_ggp,
+       filename = here::here("figures/nArticlesBooleanQueryMatch_barPlot.png"),
+       width = 7, height = 5.5, dpi = 600)
+```
+
